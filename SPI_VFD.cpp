@@ -188,9 +188,11 @@ void SPI_VFD::command(uint8_t value) {
   if (_chipselect) 
     digitalWrite(_chipselect, HIGH);
 
+  /*
   Serial.print(LCD_SPICOMMAND, HEX);
   Serial.print('\t');
   Serial.println(value, HEX);
+  */
 }
 
 void SPI_VFD::write(uint8_t value) {
@@ -201,10 +203,11 @@ void SPI_VFD::write(uint8_t value) {
   if (_chipselect) 
     digitalWrite(_chipselect, HIGH);
 
+  /*
   Serial.print(LCD_SPIDATA, HEX);
   Serial.print('\t');
   Serial.println(value, HEX);
-
+  */
 }
 
 /************ low level data pushing commands **********/
