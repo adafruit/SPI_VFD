@@ -47,8 +47,10 @@
 
 class SPI_VFD : public Print {
 public:
-
+  SPI_VFD(uint8_t data, uint8_t clock, uint8_t chipselect);
+  SPI_VFD(uint8_t data, uint8_t clock);
     
+  void init(uint8_t data, uint8_t clock, uint8_t chipselect);
   void begin(uint8_t cols, uint8_t rows, uint8_t charsize = LCD_5x8DOTS);
 
   void clear();

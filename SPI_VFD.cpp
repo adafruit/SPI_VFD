@@ -24,17 +24,17 @@
 // can't assume that its in that state when a sketch starts (and the
 // SPI_VFD constructor is called).
 
-SPI_VFD::SPI_VFD(uint8_t clock, uint8_t data, uint8_t chipselect)
+SPI_VFD::SPI_VFD(uint8_t data, uint8_t clock, uint8_t chipselect)
 {
-  init(clock, data, chipselect);
+  init(data, clock, chipselect);
 }
 
-SPI_VFD::SPI_VFD(uint8_t clock, uint8_t data)
+SPI_VFD::SPI_VFD(uint8_t data, uint8_t clock)
 {
-  init(clock, data, 0);
+  init(data, clock, 0);
 }
 
-void SPI_VFD::init(uint8_t clock, uint8_t data, uint8_t chipselect)
+void SPI_VFD::init(uint8_t data, uint8_t clock, uint8_t chipselect)
 {
   _clock = clock;
   _data = data;
@@ -64,11 +64,10 @@ void SPI_VFD::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
   }
 
   clear();
+  home();
 
   // set up the display size
   command(LCD_FUNCTIONSET | _displayfunction);
-
-  home();
 
   // Initialize to default text direction (for romance languages)
   _displaymode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT;
@@ -81,8 +80,7 @@ void SPI_VFD::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
   _displaycontrol = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF; 
   display();
 
-  // clear it off
-  clear();
+  command(LCD_SETDDRAMADDR);  // go to address 0
 }
 
 /********** high level commands, for the user! */
@@ -182,19 +180,65 @@ void SPI_VFD::createChar(uint8_t location, uint8_t charmap[]) {
 
 /*********** mid level commands, for sending data/cmds */
 
-inline void SPI_VFD::command(uint8_t value) {
+void SPI_VFD::command(uint8_t value) {
+  if (_chipselect) 
+    digitalWrite(_chipselect, LOW);
   send(LCD_SPICOMMAND);
   send(value);
+  if (_chipselect) 
+    digitalWrite(_chipselect, HIGH);
+
+  Serial.print(LCD_SPICOMMAND, HEX);
+  Serial.print('\t');
+  Serial.println(value, HEX);
 }
 
-inline void SPI_VFD::write(uint8_t value) {
+void SPI_VFD::write(uint8_t value) {
+  if (_chipselect) 
+    digitalWrite(_chipselect, LOW);
   send(LCD_SPIDATA);
   send(value);
+  if (_chipselect) 
+    digitalWrite(_chipselect, HIGH);
+
+  Serial.print(LCD_SPIDATA, HEX);
+  Serial.print('\t');
+  Serial.println(value, HEX);
+
 }
 
 /************ low level data pushing commands **********/
 
 // write spi data
-void SPI_VFD::send(uint8_t value) {
+void SPI_VFD::send(uint8_t c) {
+  //shiftOut(_data, _clock, MSBFIRST, value);
+
+  //volatile uint8_t *sclkportreg = portOutputRegister(sclkport);
+  //volatile uint8_t *sidportreg = portOutputRegister(sidport);
+
+  int8_t i;
+
+  //*sclkportreg |= sclkpin;
+  digitalWrite(_clock, HIGH);
+
+  for (i=7; i>=0; i--) {
+    //*sclkportreg &= ~sclkpin;
+    //SCLK_PORT &= ~_BV(SCLK);
+    digitalWrite(_clock, LOW);
+    
+    if (c & _BV(i)) {
+      //*sidportreg |= sidpin;
+      //SID_PORT |= _BV(SID);
+      digitalWrite(_data, HIGH);
+    } else {
+      //*sidportreg &= ~sidpin;
+      //SID_PORT &= ~_BV(SID);
+      digitalWrite(_data, LOW);
+    }
+    
+    //*sclkportreg |= sclkpin;
+    //SCLK_PORT |= _BV(SCLK);
+    digitalWrite(_clock, HIGH);
+  }
   
 }
