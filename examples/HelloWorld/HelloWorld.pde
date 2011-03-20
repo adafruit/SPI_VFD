@@ -9,8 +9,8 @@
  and shows the time.
  
   The circuit:
- * VFD Clock to digital pin 2
- * VFD Data to digital pin 3
+ * VFD Data to digital pin 2
+ * VFD Clock to digital pin 3
  * VFD Chip select to digital pin 4
  * VFD VCC (power) to 5V
  * VFD Ground (power) to Ground
