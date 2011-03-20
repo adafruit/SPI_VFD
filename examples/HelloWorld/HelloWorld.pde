@@ -5,7 +5,7 @@
  library works with all VFD displays that are compatible with the 
  NEC PD16314 driver and has the SPI pins brought out
  
- This sketch prints "Hello World!" to the LCD
+ This sketch prints "Hello World!" to the VFD
  and shows the time.
  
   The circuit:
@@ -34,9 +34,9 @@
 SPI_VFD vfd(2, 3, 4);
 
 void setup() {
-  // set up the LCD's number of columns and rows: 
+  // set up the VFD's number of columns and rows: 
   vfd.begin(20, 2);
-  // Print a message to the LCD.
+  // Print a message to the VFD.
   vfd.print("hello, world!");
 }
 
