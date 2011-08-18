@@ -9,9 +9,8 @@
 //
 // 1. Display clear
 // 2. Function set: 
-//    DL = 1; 8-bit interface data 
-//    N = 0; 1-line display 
-//    F = 0; 5x8 dot character font 
+//    N = 1; 2-line display 
+//    BR1=BR0=0; (100% brightness)
 // 3. Display on/off control: 
 //    D = 0; Display off 
 //    C = 0; Cursor off 
@@ -24,75 +23,80 @@
 // can't assume that its in that state when a sketch starts (and the
 // SPI_VFD constructor is called).
 
-SPI_VFD::SPI_VFD(uint8_t data, uint8_t clock, uint8_t chipselect)
-{
-  init(data, clock, chipselect);
-}
-
-SPI_VFD::SPI_VFD(uint8_t data, uint8_t clock)
-{
-  init(data, clock, 0);
-}
-
-void SPI_VFD::init(uint8_t data, uint8_t clock, uint8_t chipselect)
+SPI_VFD::SPI_VFD(uint8_t data, uint8_t clock, uint8_t strobe, uint8_t brightness)
 {
   _clock = clock;
   _data = data;
-  _chipselect = chipselect;
+  _strobe = strobe;
   
   pinMode(_clock, OUTPUT);
   pinMode(_data, OUTPUT);
-  
-  if (_chipselect) {
-     pinMode(_chipselect, OUTPUT);
-  }
+  pinMode(_strobe, OUTPUT);
 
-  _displayfunction = LCD_8BITMODE; // its actually SPI but its 8 bit SPI
-  begin(20, 2);  
+  // normal state of these pins should be high. We must bring them high or the first
+  // command will not be captured by the display module.
+  digitalWrite(_strobe, HIGH);
+  digitalWrite(_clock, HIGH);
+
+  begin(20, 2, brightness);  //default to 2x20 display (SAMSUNG 20T202DA2JA)
 }
 
-void SPI_VFD::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
-  if (lines > 1) {
-    _displayfunction |= LCD_2LINE;
-  }
+void SPI_VFD::begin(uint8_t cols, uint8_t lines, uint8_t brightness) {
+  // set number of lines
+  if (lines > 1)
+    _displayfunction = VFD_2LINE;
+  else
+    _displayfunction = VFD_1LINE;
+
+  if (brightness>VFD_BRIGHTNESS25)	//catch bad values
+    brightness = VFD_BRIGHTNESS100;
+
+  // set the brightness and push the linecount with VFD_SETFUNCTION
+  setBrightness(brightness);
+  
   _numlines = lines;
   _currline = 0;
+  
+  // Initialize to default text direction (for romance languages#include "SPI_VFD.h"
+  _displaymode = VFD_ENTRYLEFT | VFD_ENTRYSHIFTDECREMENT;
+  // set the entry mode
+  command(VFD_ENTRYMODESET | _displaymode);
 
-  // for some 1 line displays you can select a 10 pixel high font
-  if ((dotsize != 0) && (lines == 1)) {
-    _displayfunction |= LCD_5x10DOTS;
-  }
+  command(VFD_SETDDRAMADDR);  // go to address 0
+
+  // turn the display on with no cursor or blinking default
+  _displaycontrol = VFD_DISPLAYON; 
+  display();
 
   clear();
   home();
+}
+  
+/********** high level commands, for the user! */
+void SPI_VFD::setBrightness(uint8_t brightness){
+  // set the brightness (only if a valid value is passed
+  if (brightness <= VFD_BRIGHTNESS25) {
+    _displayfunction &= ~VFD_BRIGHTNESS25;
+    _displayfunction |= brightness;
 
-  // set up the display size
-  command(LCD_FUNCTIONSET | _displayfunction);
-
-  // Initialize to default text direction (for romance languages)
-  _displaymode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT;
-  // set the entry mode
-  command(LCD_ENTRYMODESET | _displaymode);
-
-  command(LCD_SETDDRAMADDR);  // go to address 0
-
-  // turn the display on with no cursor or blinking default
-  _displaycontrol = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF; 
-  display();
-
-  command(LCD_SETDDRAMADDR);  // go to address 0
+	command(VFD_FUNCTIONSET | _displayfunction);
+  }
 }
 
-/********** high level commands, for the user! */
+uint8_t SPI_VFD::getBrightness(){
+  // get the brightness
+  return _displayfunction & VFD_BRIGHTNESS25;
+}
+
 void SPI_VFD::clear()
 {
-  command(LCD_CLEARDISPLAY);  // clear display, set cursor position to zero
+  command(VFD_CLEARDISPLAY);  // clear display, set cursor position to zero
   delayMicroseconds(2000);  // this command takes a long time!
 }
 
 void SPI_VFD::home()
 {
-  command(LCD_RETURNHOME);  // set cursor position to zero
+  command(VFD_RETURNHOME);  // set cursor position to zero
   delayMicroseconds(2000);  // this command takes a long time!
 }
 
@@ -103,108 +107,104 @@ void SPI_VFD::setCursor(uint8_t col, uint8_t row)
     row = _numlines-1;    // we count rows starting w/0
   }
   
-  command(LCD_SETDDRAMADDR | (col + row_offsets[row]));
+  command(VFD_SETDDRAMADDR | (col + row_offsets[row]));
 }
 
 // Turn the display on/off (quickly)
 void SPI_VFD::noDisplay() {
-  _displaycontrol &= ~LCD_DISPLAYON;
-  command(LCD_DISPLAYCONTROL | _displaycontrol);
+  _displaycontrol &= ~VFD_DISPLAYON;
+  command(VFD_DISPLAYCONTROL | _displaycontrol);
 }
 void SPI_VFD::display() {
-  _displaycontrol |= LCD_DISPLAYON;
-  command(LCD_DISPLAYCONTROL | _displaycontrol);
+  _displaycontrol |= VFD_DISPLAYON;
+  command(VFD_DISPLAYCONTROL | _displaycontrol);
 }
 
 // Turns the underline cursor on/off
 void SPI_VFD::noCursor() {
-  _displaycontrol &= ~LCD_CURSORON;
-  command(LCD_DISPLAYCONTROL | _displaycontrol);
+  _displaycontrol &= ~VFD_CURSORON;
+  command(VFD_DISPLAYCONTROL | _displaycontrol);
 }
 void SPI_VFD::cursor() {
-  _displaycontrol |= LCD_CURSORON;
-  command(LCD_DISPLAYCONTROL | _displaycontrol);
+  _displaycontrol |= VFD_CURSORON;
+  command(VFD_DISPLAYCONTROL | _displaycontrol);
 }
 
 // Turn on and off the blinking cursor
 void SPI_VFD::noBlink() {
-  _displaycontrol &= ~LCD_BLINKON;
-  command(LCD_DISPLAYCONTROL | _displaycontrol);
+  _displaycontrol &= ~VFD_BLINKON;
+  command(VFD_DISPLAYCONTROL | _displaycontrol);
 }
 void SPI_VFD::blink() {
-  _displaycontrol |= LCD_BLINKON;
-  command(LCD_DISPLAYCONTROL | _displaycontrol);
+  _displaycontrol |= VFD_BLINKON;
+  command(VFD_DISPLAYCONTROL | _displaycontrol);
 }
 
 // These commands scroll the display without changing the RAM
 void SPI_VFD::scrollDisplayLeft(void) {
-  command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVELEFT);
+  command(VFD_CURSORSHIFT | VFD_DISPLAYMOVE | VFD_MOVELEFT);
 }
 void SPI_VFD::scrollDisplayRight(void) {
-  command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVERIGHT);
+  command(VFD_CURSORSHIFT | VFD_DISPLAYMOVE | VFD_MOVERIGHT);
 }
 
 // This is for text that flows Left to Right
 void SPI_VFD::leftToRight(void) {
-  _displaymode |= LCD_ENTRYLEFT;
-  command(LCD_ENTRYMODESET | _displaymode);
+  _displaymode |= VFD_ENTRYLEFT;
+  command(VFD_ENTRYMODESET | _displaymode);
 }
 
 // This is for text that flows Right to Left
 void SPI_VFD::rightToLeft(void) {
-  _displaymode &= ~LCD_ENTRYLEFT;
-  command(LCD_ENTRYMODESET | _displaymode);
+  _displaymode &= ~VFD_ENTRYLEFT;
+  command(VFD_ENTRYMODESET | _displaymode);
 }
 
 // This will 'right justify' text from the cursor
 void SPI_VFD::autoscroll(void) {
-  _displaymode |= LCD_ENTRYSHIFTINCREMENT;
-  command(LCD_ENTRYMODESET | _displaymode);
+  _displaymode |= VFD_ENTRYSHIFTINCREMENT;
+  command(VFD_ENTRYMODESET | _displaymode);
 }
 
 // This will 'left justify' text from the cursor
 void SPI_VFD::noAutoscroll(void) {
-  _displaymode &= ~LCD_ENTRYSHIFTINCREMENT;
-  command(LCD_ENTRYMODESET | _displaymode);
+  _displaymode &= ~VFD_ENTRYSHIFTINCREMENT;
+  command(VFD_ENTRYMODESET | _displaymode);
 }
 
 // Allows us to fill the first 8 CGRAM locations
 // with custom characters
 void SPI_VFD::createChar(uint8_t location, uint8_t charmap[]) {
   location &= 0x7; // we only have 8 locations 0-7
-  command(LCD_SETCGRAMADDR | (location << 3));
+  command(VFD_SETCGRAMADDR | (location << 3));
   for (int i=0; i<8; i++) {
     write(charmap[i]);
   }
 }
 
-/*********** mid level commands, for sending data/cmds */
+/*********** mid level commands, for sending data/cmds, init */
 
 void SPI_VFD::command(uint8_t value) {
-  if (_chipselect) 
-    digitalWrite(_chipselect, LOW);
-  send(LCD_SPICOMMAND);
+  digitalWrite(_strobe, LOW);
+  send(VFD_SPICOMMAND);
   send(value);
-  if (_chipselect) 
-    digitalWrite(_chipselect, HIGH);
+  digitalWrite(_strobe, HIGH);
 
   /*
-  Serial.print(LCD_SPICOMMAND, HEX);
+  Serial.print(VFD_SPICOMMAND, HEX);
   Serial.print('\t');
   Serial.println(value, HEX);
   */
 }
 
 void SPI_VFD::write(uint8_t value) {
-  if (_chipselect) 
-    digitalWrite(_chipselect, LOW);
-  send(LCD_SPIDATA);
+  digitalWrite(_strobe, LOW);
+  send(VFD_SPIDATA);
   send(value);
-  if (_chipselect) 
-    digitalWrite(_chipselect, HIGH);
+  digitalWrite(_strobe, HIGH);
 
   /*
-  Serial.print(LCD_SPIDATA, HEX);
+  Serial.print(VFD_SPIDATA, HEX);
   Serial.print('\t');
   Serial.println(value, HEX);
   */
@@ -213,35 +213,20 @@ void SPI_VFD::write(uint8_t value) {
 /************ low level data pushing commands **********/
 
 // write spi data
-void SPI_VFD::send(uint8_t c) {
-  //shiftOut(_data, _clock, MSBFIRST, value);
-
-  //volatile uint8_t *sclkportreg = portOutputRegister(sclkport);
-  //volatile uint8_t *sidportreg = portOutputRegister(sidport);
-
+inline void SPI_VFD::send(uint8_t c) {
   int8_t i;
 
-  //*sclkportreg |= sclkpin;
   digitalWrite(_clock, HIGH);
 
   for (i=7; i>=0; i--) {
-    //*sclkportreg &= ~sclkpin;
-    //SCLK_PORT &= ~_BV(SCLK);
     digitalWrite(_clock, LOW);
     
     if (c & _BV(i)) {
-      //*sidportreg |= sidpin;
-      //SID_PORT |= _BV(SID);
       digitalWrite(_data, HIGH);
     } else {
-      //*sidportreg &= ~sidpin;
-      //SID_PORT &= ~_BV(SID);
       digitalWrite(_data, LOW);
     }
     
-    //*sclkportreg |= sclkpin;
-    //SCLK_PORT |= _BV(SCLK);
     digitalWrite(_clock, HIGH);
   }
-  
 }
