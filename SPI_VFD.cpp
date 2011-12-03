@@ -3,7 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include "WProgram.h"
+#if ARDUINO >= 100
+ #include "Arduino.h"
+#else
+ #include "WProgram.h"
+#endif
 
 // When the display powers up, it is configured as follows:
 //
@@ -197,7 +201,11 @@ void SPI_VFD::command(uint8_t value) {
   */
 }
 
+#if ARDUINO >= 100
+size_t SPI_VFD::write(uint8_t value) {
+#else
 void SPI_VFD::write(uint8_t value) {
+#endif
   digitalWrite(_strobe, LOW);
   send(VFD_SPIDATA);
   send(value);
@@ -208,6 +216,9 @@ void SPI_VFD::write(uint8_t value) {
   Serial.print('\t');
   Serial.println(value, HEX);
   */
+#if ARDUINO >= 100
+  return 1;
+#endif
 }
 
 /************ low level data pushing commands **********/

@@ -63,7 +63,11 @@ void loop() {
     thisChar = 'a';
   }
   // print the character
+#if ARDUINO >= 100
+  vfd.write(thisChar);
+#else
   vfd.print(thisChar, BYTE);
+#endif
   // wait a second:
   delay(1000);
   // increment the letter:

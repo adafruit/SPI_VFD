@@ -54,7 +54,11 @@ void loop() {
         // set the cursor position:
         vfd.setCursor(thisRow,thisCol);
         // print the letter:
+#if ARDUINO >= 100
+        vfd.write(thisLetter);
+#else
         vfd.print(thisLetter, BYTE);
+#endif
         delay(200);
       }
     }
