@@ -1,5 +1,5 @@
 #######################################
-# Syntax Coloring Map For LiquidCrystal
+# Syntax Coloring Map For SPI_VFD
 #######################################
 
 #######################################
