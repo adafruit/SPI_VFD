@@ -6,7 +6,7 @@
 # Datatypes (KEYWORD1)
 #######################################
 
-SPI-VFD	KEYWORD1
+SPI_VFD	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
