@@ -1,3 +1,5 @@
+# Adafruit SPI VFD Library [![Build Status](https://github.com/adafruit/SPI_VFD/workflows/Arduino%20Library%20CI/badge.svg)](https://github.com/adafruit/SPI_VFD/actions)[![Documentation](https://github.com/adafruit/ci-arduino/blob/master/assets/doxygen_badge.svg)](http://adafruit.github.io/SPI_VFD/html/index.html)
+
 Arduino Library for 20T202DA2JA SPI VFD (vacuum fluorescent display) 
 
 To install, click DOWNLOAD SOURCE in the top right corner, and see our tutorial at http://www.ladyada.net/library/arduino/libraries.html on Arduino Library installation
