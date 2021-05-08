@@ -79,8 +79,7 @@ void SPI_VFD::begin(uint8_t cols, uint8_t lines, uint8_t brightness) {
   _numlines = lines;
   _currline = 0;
 
-  // Initialize to default text direction (for romance languages#include
-  // "SPI_VFD.h"
+  // Initialize to default text direction (for romance languages)
   _displaymode = VFD_ENTRYLEFT | VFD_ENTRYSHIFTDECREMENT;
   // set the entry mode
   command(VFD_ENTRYMODESET | _displaymode);
@@ -97,7 +96,7 @@ void SPI_VFD::begin(uint8_t cols, uint8_t lines, uint8_t brightness) {
 
 /********** high level commands, for the user! */
 void SPI_VFD::setBrightness(uint8_t brightness) {
-  // set the brightness (only if a valid value is passed
+  // set the brightness (only if a valid value is passed)
   if (brightness <= VFD_BRIGHTNESS25) {
     _displayfunction &= ~VFD_BRIGHTNESS25;
     _displayfunction |= brightness;
@@ -209,12 +208,6 @@ void SPI_VFD::command(uint8_t value) {
   send(VFD_SPICOMMAND);
   send(value);
   digitalWrite(_strobe, HIGH);
-
-  /*
-  Serial.print(VFD_SPICOMMAND, HEX);
-  Serial.print('\t');
-  Serial.println(value, HEX);
-  */
 }
 
 #if ARDUINO >= 100
@@ -226,12 +219,6 @@ void SPI_VFD::write(uint8_t value) {
   send(VFD_SPIDATA);
   send(value);
   digitalWrite(_strobe, HIGH);
-
-  /*
-  Serial.print(VFD_SPIDATA, HEX);
-  Serial.print('\t');
-  Serial.println(value, HEX);
-  */
 #if ARDUINO >= 100
   return 1;
 #endif
